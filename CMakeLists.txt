@@ -78,6 +78,12 @@ endif()
 
 target_include_directories(rt64 PRIVATE ${CMAKE_BINARY_DIR}/rt64/src)
 
+if (APPLE)
+    # The pinned hlslpp scalar backend calls labs() without including its
+    # declaration. Keep the compatibility include scoped to RT64 on macOS.
+    target_compile_options(rt64 PRIVATE -include stdlib.h)
+endif()
+
 # RecompiledFuncs - Library containing the primary recompiler output
 add_library(RecompiledFuncs STATIC)
 
