@@ -48,6 +48,27 @@ configure_file(
     @ONLY
 )
 
+# Homebrew's sdl2-compat loads SDL3 with dlopen(), so BundleUtilities cannot
+# discover that runtime dependency from the executable's Mach-O load commands.
+get_target_property(SDL2_RUNTIME SDL2::SDL2 IMPORTED_LOCATION_RELEASE)
+if (SDL2_RUNTIME AND NOT SDL2_RUNTIME STREQUAL "SDL2_RUNTIME-NOTFOUND")
+    get_filename_component(SDL2_RUNTIME_REAL "${SDL2_RUNTIME}" REALPATH)
+    if (SDL2_RUNTIME_REAL MATCHES "sdl2-compat")
+        find_library(SDL3_COMPAT_RUNTIME NAMES SDL3 REQUIRED)
+        get_filename_component(SDL3_COMPAT_RUNTIME_REAL "${SDL3_COMPAT_RUNTIME}" REALPATH)
+
+        add_custom_command(TARGET drmario64_recomp POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                "$<TARGET_BUNDLE_DIR:drmario64_recomp>/Contents/Frameworks"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${SDL3_COMPAT_RUNTIME_REAL}"
+                "$<TARGET_BUNDLE_DIR:drmario64_recomp>/Contents/Frameworks/libSDL3.dylib"
+            COMMENT "Bundling SDL3 for sdl2-compat"
+            VERBATIM
+        )
+    endif()
+endif()
+
 add_custom_command(TARGET drmario64_recomp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/assets"
