@@ -70,6 +70,9 @@ if (SDL2_RUNTIME AND NOT SDL2_RUNTIME STREQUAL "SDL2_RUNTIME-NOTFOUND")
 endif()
 
 add_custom_command(TARGET drmario64_recomp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/recompcontrollerdb.txt"
+        "$<TARGET_BUNDLE_DIR:drmario64_recomp>/Contents/Resources/recompcontrollerdb.txt"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/assets"
         "$<TARGET_BUNDLE_DIR:drmario64_recomp>/Contents/Resources/assets"

@@ -435,6 +435,9 @@ endif()
 if (NOT APPLE)
     # Copy runtime resources next to a non-bundled executable.
     add_custom_command(TARGET drmario64_recomp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/recompcontrollerdb.txt"
+            "$<TARGET_FILE_DIR:drmario64_recomp>/recompcontrollerdb.txt"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/assets"
             "$<TARGET_FILE_DIR:drmario64_recomp>/assets"
