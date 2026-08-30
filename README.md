@@ -52,6 +52,18 @@ These steps are required before building on any platform.
 3. Copy `baserom_uncompressed.us.z64` from the decompilation repository into
    this repository and rename it to `drmario64_uncompressed.us.z64`.
 
+   Verify that the uncompressed ROM has the expected SHA-1 checksum:
+
+   ```bash
+   shasum -a 1 drmario64_uncompressed.us.z64
+   ```
+
+   The expected result is:
+
+   ```text
+   96ba0ce2f9e98e5790df120320cd3d1a3d7080d2  drmario64_uncompressed.us.z64
+   ```
+
 4. Build [`N64Recomp`](https://github.com/Mr-Wiseguy/N64Recomp) at commit
    `a13e5cff96686776b0e03baf23923e3c1927b770`, then copy `N64Recomp` and
    `RSPRecomp` into this repository's root directory.
