@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Several pinned third-party projects still declare compatibility with CMake
+# versions older than 3.5, which CMake 4 no longer accepts by default.
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+    set(CMAKE_POLICY_VERSION_MINIMUM "3.5")
+endif()
+
 if (APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version")
 endif()
@@ -64,6 +70,12 @@ target_compile_definitions(rmlui_core PRIVATE LUNASVG_BUILD_STATIC)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime)
 
+# Apple Clang 21 rejects fmt's C++20 consteval path in the pinned runtime.
+# fmt supports C++17, so keep the workaround scoped to that dependency.
+if (APPLE AND TARGET fmt)
+    set_property(TARGET fmt PROPERTY CXX_STANDARD 17)
+endif()
+
 target_include_directories(rt64 PRIVATE ${CMAKE_BINARY_DIR}/rt64/src)
 
 # RecompiledFuncs - Library containing the primary recompiler output
@@ -86,6 +98,13 @@ target_include_directories(RecompiledFuncs PRIVATE
 
 file(GLOB FUNC_C_SOURCES ${CMAKE_SOURCE_DIR}/RecompiledFuncs/*.c)
 file(GLOB FUNC_CXX_SOURCES ${CMAKE_SOURCE_DIR}/RecompiledFuncs/*.cpp)
+
+if (NOT FUNC_C_SOURCES AND NOT FUNC_CXX_SOURCES)
+    message(FATAL_ERROR
+        "Generated game sources are missing. Run N64Recomp with drmario64.us.toml "
+        "after placing drmario64_uncompressed.us.z64 in the repository root."
+    )
+endif()
 
 target_sources(RecompiledFuncs PRIVATE ${FUNC_C_SOURCES} ${FUNC_CXX_SOURCES})
 
@@ -203,6 +222,13 @@ set (SOURCES
 
     ${CMAKE_SOURCE_DIR}/lib/RmlUi/Backends/RmlUi_Platform_SDL.cpp
 )
+
+if (NOT EXISTS "${CMAKE_SOURCE_DIR}/rsp/aspMain.cpp")
+    message(FATAL_ERROR
+        "Generated RSP source rsp/aspMain.cpp is missing. "
+        "Run RSPRecomp with aspMain.us.toml."
+    )
+endif()
 
 if (APPLE)
     list(APPEND SOURCES ${CMAKE_SOURCE_DIR}/src/main/support_apple.mm)
@@ -395,19 +421,17 @@ if (WIN32 AND MSVC)
     )
 endif()
 
-# Copy runtime assets next to the executable so it can be launched from the build directory.
-add_custom_command(TARGET drmario64_recomp POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/assets"
-        "$<TARGET_FILE_DIR:drmario64_recomp>/assets"
-)
-
-# Copy icons next to the executable (used by the controller assignment prompt and other platform-specific bits).
-add_custom_command(TARGET drmario64_recomp POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/icons"
-        "$<TARGET_FILE_DIR:drmario64_recomp>/icons"
-)
+if (NOT APPLE)
+    # Copy runtime resources next to a non-bundled executable.
+    add_custom_command(TARGET drmario64_recomp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/assets"
+            "$<TARGET_FILE_DIR:drmario64_recomp>/assets"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/icons"
+            "$<TARGET_FILE_DIR:drmario64_recomp>/icons"
+    )
+endif()
 
 # TODO fix the rt64 CMake script so that this doesn't need to be duplicated here
 # For DXC
@@ -430,7 +454,7 @@ else()
         if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
             set(SPIRVCROSS "DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/lib/x64" "${PROJECT_SOURCE_DIR}/lib/rt64//src/contrib/spirv-cross/bin/x64/spirv-cross")
         else()
-            set(SPIRVCROSS "DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/lib/arm64" "${PROJECT_SOURCE_DIR}/lib/rt64//src/contrib/spirv-cross/bin/x64/spirv-cross")
+            set(SPIRVCROSS "DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/lib/arm64" "${PROJECT_SOURCE_DIR}/lib/rt64/src/contrib/spirv-cross/bin/arm64/spirv-cross")
         endif()
     else()
         if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
