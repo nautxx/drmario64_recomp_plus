@@ -58,6 +58,11 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/rt64 ${CMAKE_BINARY_DIR}/rt64)
 
+if (APPLE)
+    include(${CMAKE_SOURCE_DIR}/.github/macos/rt64_metal_ownership.cmake)
+    apply_rt64_metal_ownership_fix(rt64)
+endif()
+
 # set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
 set(BUILD_SHARED_LIBS OFF)
 SET(LUNASVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
