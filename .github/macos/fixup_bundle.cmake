@@ -14,4 +14,8 @@ set(SEARCH_DIRS
     "/usr/local/lib"
 )
 
+if(DEFINED BUNDLE_LIBRARY_DIR AND BUNDLE_LIBRARY_DIR)
+    list(PREPEND SEARCH_DIRS "${BUNDLE_LIBRARY_DIR}")
+endif()
+
 fixup_bundle("${APP_EXECUTABLE}" "" "${SEARCH_DIRS}")
