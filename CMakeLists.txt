@@ -234,6 +234,21 @@ set (SOURCES
     ${CMAKE_SOURCE_DIR}/lib/RmlUi/Backends/RmlUi_Platform_SDL.cpp
 )
 
+# Apple Clang 21 corrupts a saved arm64 register while optimizing the
+# header-only GamepadMotion implementation in input.cpp. The corruption is
+# visible when the next controller sensor field is accessed. Input polling is
+# not performance-critical, so keep this translation unit unoptimized on the
+# affected compiler generation.
+if (APPLE
+    AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "21"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "22")
+    set_source_files_properties(
+        "${CMAKE_SOURCE_DIR}/src/game/input.cpp"
+        PROPERTIES COMPILE_OPTIONS "-O0"
+    )
+endif()
+
 if (NOT EXISTS "${CMAKE_SOURCE_DIR}/rsp/aspMain.cpp")
     message(FATAL_ERROR
         "Generated RSP source rsp/aspMain.cpp is missing. "
