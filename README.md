@@ -115,6 +115,30 @@ The local bundle uses an ad-hoc signature and includes its non-system runtime
 libraries. Public distribution requires an Apple Developer ID signature and
 notarization.
 
+### Create a macOS release package
+
+After preparing the generated sources, create a compatibility-targeted DMG
+with:
+
+~~~bash
+./.github/macos/package_release.sh
+~~~
+
+The script downloads checksum-pinned SDL3, sdl2-compat, libpng, and FreeType
+sources, builds them for macOS 11 or newer, builds the application, and writes
+the DMG and its SHA-256 file to dist/. It never places a ROM in the application
+or disk image.
+
+Without an Apple signing identity, the result is ad-hoc signed and suitable
+for local testing. For a public release, provide a Developer ID identity and
+a configured notarytool keychain profile:
+
+~~~bash
+MACOS_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+MACOS_NOTARY_PROFILE="drmario64-notary" \
+./.github/macos/package_release.sh
+~~~
+
 ## Build on Linux
 
 Install SDL2 and GTK 3 development packages for your distribution. SDL2 may
