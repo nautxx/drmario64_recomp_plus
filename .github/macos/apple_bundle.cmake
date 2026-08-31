@@ -1,4 +1,8 @@
 set(ENTITLEMENTS_FILE "${CMAKE_SOURCE_DIR}/.github/macos/entitlements.plist")
+set(SDL3_COMPAT_RUNTIME "" CACHE FILEPATH
+    "SDL3 runtime loaded by sdl2-compat (needed when it cannot be auto-detected)")
+set(MACOS_BUNDLE_LIBRARY_DIR "" CACHE PATH
+    "Additional directory containing macOS runtime libraries to bundle")
 
 set_target_properties(drmario64_recomp PROPERTIES
     MACOSX_BUNDLE TRUE
@@ -53,10 +57,25 @@ configure_file(
 get_target_property(SDL2_RUNTIME SDL2::SDL2 IMPORTED_LOCATION_RELEASE)
 if (SDL2_RUNTIME AND NOT SDL2_RUNTIME STREQUAL "SDL2_RUNTIME-NOTFOUND")
     get_filename_component(SDL2_RUNTIME_REAL "${SDL2_RUNTIME}" REALPATH)
-    if (SDL2_RUNTIME_REAL MATCHES "sdl2-compat")
+    get_filename_component(SDL2_RUNTIME_DIR "${SDL2_RUNTIME_REAL}" DIRECTORY)
+
+    if (NOT MACOS_BUNDLE_LIBRARY_DIR)
+        set(MACOS_BUNDLE_LIBRARY_DIR "${SDL2_RUNTIME_DIR}")
+    endif()
+
+    if (SDL3_COMPAT_RUNTIME)
+        if (NOT EXISTS "${SDL3_COMPAT_RUNTIME}")
+            message(FATAL_ERROR
+                "SDL3_COMPAT_RUNTIME does not exist: ${SDL3_COMPAT_RUNTIME}")
+        endif()
+        get_filename_component(SDL3_COMPAT_RUNTIME_REAL
+            "${SDL3_COMPAT_RUNTIME}" REALPATH)
+    elseif (SDL2_RUNTIME_REAL MATCHES "sdl2-compat")
         find_library(SDL3_COMPAT_RUNTIME NAMES SDL3 REQUIRED)
         get_filename_component(SDL3_COMPAT_RUNTIME_REAL "${SDL3_COMPAT_RUNTIME}" REALPATH)
+    endif()
 
+    if (SDL3_COMPAT_RUNTIME_REAL)
         add_custom_command(TARGET drmario64_recomp POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory
                 "$<TARGET_BUNDLE_DIR:drmario64_recomp>/Contents/Frameworks"
@@ -82,6 +101,7 @@ add_custom_command(TARGET drmario64_recomp POST_BUILD
     COMMAND ${CMAKE_COMMAND}
         "-DAPP_BUNDLE=$<TARGET_BUNDLE_DIR:drmario64_recomp>"
         "-DAPP_EXECUTABLE=$<TARGET_FILE:drmario64_recomp>"
+        "-DBUNDLE_LIBRARY_DIR=${MACOS_BUNDLE_LIBRARY_DIR}"
         -P "${CMAKE_SOURCE_DIR}/.github/macos/fixup_bundle.cmake"
     COMMAND codesign
         --options runtime
